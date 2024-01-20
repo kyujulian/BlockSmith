@@ -1,3 +1,7 @@
+pub mod block;
+pub mod chain;
+pub mod transaction;
+
 pub fn add(left: usize, right: usize) -> usize {
     left + right
 }
