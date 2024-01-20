@@ -1,7 +1,9 @@
 use crate::transaction::Transaction;
+use serde::Serialize;
+use sha2::Digest;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Debug, Clone)]
 pub struct Block {
     timestamp: i64,
     nonce: i64,
@@ -29,7 +31,12 @@ impl Block {
     }
 
     pub fn hash(&self) -> String {
-        format!("hash {}", self.timestamp)
+        let block_json = serde_json::to_string(&self).expect("Failed to Serialize Struct");
+
+        sha2::Sha256::digest(block_json.as_bytes())
+            .iter()
+            .map(|byte| format!("{:x}", byte))
+            .collect::<String>()
     }
 
     pub fn new(transactions: Vec<Transaction>, nonce: i64, previous_hash: String) -> Self {

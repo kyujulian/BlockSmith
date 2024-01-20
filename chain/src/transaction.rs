@@ -1,4 +1,6 @@
-#[derive(Debug, Clone)]
+use serde::Serialize;
+
+#[derive(Serialize, Debug, Clone)]
 pub struct Transaction {
     sender_address: String,
     recipient_address: String,

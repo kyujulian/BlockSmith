@@ -1,18 +1,29 @@
+use crate::chain::Blockchain;
+
 pub mod block;
 pub mod chain;
 pub mod transaction;
 
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+pub const MINING_DIFFICULTY: usize = 3;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub fn run() -> Result<(), Box<dyn std::error::Error>> {
+    let mut my_chain = Blockchain::new(String::from("my_address"), MINING_DIFFICULTY);
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+    my_chain.add_transaction(String::from("Alice"), String::from("Bob"), 100);
+
+    my_chain.add_transaction(String::from("Bob"), String::from("Carol"), 20);
+
+    println!("{:#?} {:#?}", my_chain.chain(), my_chain.mempool());
+
+    my_chain.mine();
+
+    println!("{:#?} {:#?}", my_chain.chain(), my_chain.mempool());
+    my_chain.add_transaction(String::from("Bob"), String::from("Carol"), 20);
+
+    println!("{:#?} {:#?}", my_chain.chain(), my_chain.mempool());
+
+    my_chain.mine();
+
+    println!("{:#?} {:#?}", my_chain.chain(), my_chain.mempool());
+    Ok(())
 }
