@@ -62,7 +62,8 @@ impl Block {
 
     pub fn hash(&self) -> String {
         let block_json = serde_json::to_string(&self).expect("Failed to Serialize Struct");
-        format!("{:x}", sha2::Sha256::digest(block_json.as_bytes()))
+        let hash = sha2::Sha256::digest(block_json.as_bytes());
+        hex::encode(hash)
     }
     pub fn new(transactions: Vec<Rc<Transaction>>, nonce: i64, previous_hash: String) -> Self {
         let timestamp = Self::generate_timestamp();
@@ -103,10 +104,10 @@ mod tests {
     #[test]
     fn test_raw_hash_converted_is_same() {
         let block = Block::default();
-        let hash_raw = block
+        let hash_raw: String = block
             .hash_raw()
             .iter()
-            .map(|b| format!("{:x}", b))
+            .map(|b| format!("{:02x}", b))
             .collect::<String>();
 
         let hash = block.hash();
