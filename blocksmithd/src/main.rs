@@ -1,4 +1,8 @@
+use api;
 use chain;
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    Ok(chain::run().unwrap())
+
+fn main() -> std::io::Result<()> {
+    chain::run().unwrap();
+
+    api::run()
 }

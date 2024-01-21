@@ -1,0 +1,16 @@
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+
+#[get("/")]
+async fn hello() -> impl Responder {
+    HttpResponse::Ok().body("Hello world!")
+}
+
+#[actix_web::main]
+pub async fn run() -> std::io::Result<()> {
+    HttpServer::new(|| App::new().service(hello))
+        .bind("127.0.0.1:8080")?
+        .run()
+        .await
+}
+#[cfg(test)]
+mod tests {}
