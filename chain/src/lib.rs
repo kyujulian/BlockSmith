@@ -3,6 +3,7 @@ use crate::chain::Blockchain;
 pub mod block;
 pub mod chain;
 pub mod transaction;
+pub mod wallet;
 
 pub const MINING_DIFFICULTY: usize = 3;
 

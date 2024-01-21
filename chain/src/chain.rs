@@ -108,7 +108,7 @@ mod tests {
 
     #[test]
     fn block_added_references_previous_block() {
-        let mut blockchain = Blockchain::new(String::from("my_address"));
+        let mut blockchain = Blockchain::new(String::from("my_address"), 2);
         let first_block = blockchain
             .last_block()
             .expect("Last block not found 1")
@@ -131,7 +131,7 @@ mod tests {
 
     #[test]
     fn hashes_are_unique() {
-        let mut blockchain = Blockchain::new(String::from("my_address"), 4);
+        let mut blockchain = Blockchain::new(String::from("my_address"), 2);
 
         let first_block = blockchain
             .last_block()
@@ -152,7 +152,7 @@ mod tests {
 
     #[test]
     fn mempool_empty_after_block_created() {
-        let mut blockchain = Blockchain::new(String::from("my_address"), 4);
+        let mut blockchain = Blockchain::new(String::from("my_address"), 2);
 
         blockchain.add_transaction(
             String::from("sender_address"),
