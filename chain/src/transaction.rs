@@ -15,4 +15,15 @@ impl Transaction {
             value,
         }
     }
+
+    pub fn sender_address(&self) -> String {
+        self.sender_address.clone()
+    }
+
+    pub fn recipient_address(&self) -> String {
+        self.recipient_address.clone()
+    }
+    pub fn value(&self) -> i64 {
+        self.value
+    }
 }

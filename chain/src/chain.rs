@@ -1,11 +1,14 @@
 use crate::block::Block;
 use crate::transaction::Transaction;
 
+use ripemd::digest::generic_array::GenericArray;
+use std::rc::Rc;
+
 /// There should be only one blockchain instance per node
 pub struct Blockchain {
     address: String,
     chain: Vec<Block>,
-    mempool: Vec<Transaction>,
+    mempool: Vec<Rc<Transaction>>,
     difficulty: usize,
 }
 
@@ -14,7 +17,7 @@ impl Blockchain {
         let mut chain = Vec::new();
         let genesis_block = Block::default();
         chain.push(genesis_block);
-        let mempool = Vec::new();
+        let mempool = vec![];
 
         Self {
             address,
@@ -25,8 +28,8 @@ impl Blockchain {
     }
 
     /// For testing
-    pub fn mempool(&self) -> Vec<Transaction> {
-        self.mempool.clone()
+    pub fn mempool(&self) -> Vec<Rc<Transaction>> {
+        self.mempool.clone() // Shallow copy
     }
 
     pub fn last_block(&self) -> Option<&Block> {
@@ -35,40 +38,64 @@ impl Blockchain {
 
     /// For testing
     pub fn chain(&self) -> Vec<Block> {
-        self.chain.clone()
+        self.chain.clone() // Deep copy
     }
 
     pub fn add_block(&mut self) -> Option<&Block> {
         let previous_hash = self.last_block()?.hash();
-        let nonce = 0; // todo: this should be calculated
+        let nonce = 0;
 
         self.create_block(nonce, previous_hash)
     }
 
     pub fn add_transaction(
-        &mut self,
-        sender_address: String,
-        recipient_address: String,
+        mut self,
+        sender_address: &str,
+        recipient_address: &str,
         value: i64,
-    ) {
-        let transaction = Transaction::new(sender_address, recipient_address, value);
-        self.mempool.push(transaction);
+    ) -> Self {
+        let transaction = Transaction::new(
+            String::from(sender_address),
+            String::from(recipient_address),
+            value,
+        );
+
+        self.mempool.push(Rc::new(transaction));
+        self
     }
 
     pub fn proof_of_work(&self) -> i64 {
-        let transactions = self.mempool.clone();
-        let previous_hash = self.last_block().expect("Failed to get last block").hash();
+        let previous_hash = self
+            .last_block()
+            .expect("Failed to get last block")
+            .hash_raw();
         let mut nonce = 0;
 
         while !Self::valid_proof(
             nonce,
             previous_hash.clone(),
-            transactions.clone(),
+            self.mempool(),
             self.difficulty,
         ) {
             nonce += 1;
         }
         nonce
+    }
+
+    pub fn get_balance(&self, address: &str) -> i64 {
+        let mut balance = 0;
+
+        for block in self.chain.iter() {
+            for transaction in block.transactions().iter() {
+                if transaction.sender_address() == address {
+                    balance -= transaction.value();
+                }
+                if transaction.recipient_address() == address {
+                    balance += transaction.value();
+                }
+            }
+        }
+        balance
     }
 
     pub fn mine(&mut self) -> Option<&Block> {
@@ -80,20 +107,25 @@ impl Blockchain {
 
     fn valid_proof(
         nonce: i64,
-        previous_hash: String,
-        transactions: Vec<Transaction>,
+        previous_hash: GenericArray<u8, typenum::U32>,
+        transactions: Vec<Rc<Transaction>>,
         difficulty: usize,
     ) -> bool {
-        let zeros = "0".repeat(difficulty as usize);
-        let guess_block = Block::new(transactions, nonce, previous_hash);
-        if guess_block.hash().starts_with(&zeros) {
+        let zeros = "0".repeat(difficulty);
+
+        let previous_hash_str = format!("{:x}", previous_hash);
+        let guess_block = Block::new(transactions, nonce, previous_hash_str);
+
+        // let hash = guess_block.hash();
+        let hash = guess_block.hash();
+        if hash.starts_with(&zeros) {
             return true;
         }
         false
     }
 
     fn create_block(&mut self, nonce: i64, previous_hash: String) -> Option<&Block> {
-        let block = Block::new(self.mempool.clone(), nonce, previous_hash);
+        let block = Block::new(self.mempool(), nonce, previous_hash);
 
         self.chain.push(block);
         self.mempool.clear();
@@ -147,23 +179,19 @@ mod tests {
 
         blockchain.add_block();
 
-        assert_ne!(first_block.hash(), last_block.hash());
+        assert_ne!(first_block.hash_raw(), last_block.hash_raw());
     }
 
     #[test]
     fn mempool_empty_after_block_created() {
         let mut blockchain = Blockchain::new(String::from("my_address"), 2);
 
-        blockchain.add_transaction(
-            String::from("sender_address"),
-            String::from("recipient_address"),
-            100,
-        );
+        blockchain = blockchain.add_transaction("sender_address", "recipient_address", 100); // there must be a way to avoid this..
 
-        assert_eq!(blockchain.mempool.len(), 1);
+        assert_eq!(blockchain.mempool().len(), 1);
 
         blockchain.add_block();
 
-        assert_eq!(blockchain.mempool.len(), 0);
+        assert_eq!(blockchain.mempool().len(), 0);
     }
 }

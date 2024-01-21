@@ -1,14 +1,38 @@
 use crate::transaction::Transaction;
-use serde::Serialize;
+use ripemd::digest::generic_array::GenericArray;
+
+use serde::ser::SerializeStruct;
+use serde::{Serialize, Serializer};
 use sha2::Digest;
+use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct Block {
     timestamp: i64,
     nonce: i64,
     previous_hash: String,
-    transactions: Vec<Transaction>,
+    transactions: Vec<Rc<Transaction>>,
+}
+
+impl Serialize for Block {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("Block", 4)?;
+        state.serialize_field("timestamp", &self.timestamp)?;
+        state.serialize_field("nonce", &self.nonce)?;
+        state.serialize_field("previous_hash", &self.previous_hash)?;
+
+        // Serialize each transaction by dereferencing the Rc.
+        // This will serialize the data pointed to by the Rc, not the Rc itself.
+        let transaction_data: Vec<&Transaction> =
+            self.transactions.iter().map(|rc| &**rc).collect();
+        state.serialize_field("transactions", &transaction_data)?;
+
+        state.end()
+    }
 }
 
 impl Block {
@@ -30,16 +54,17 @@ impl Block {
         self.previous_hash.clone()
     }
 
-    pub fn hash(&self) -> String {
+    pub fn hash_raw(&self) -> GenericArray<u8, typenum::U32> {
         let block_json = serde_json::to_string(&self).expect("Failed to Serialize Struct");
 
         sha2::Sha256::digest(block_json.as_bytes())
-            .iter()
-            .map(|byte| format!("{:x}", byte))
-            .collect::<String>()
     }
 
-    pub fn new(transactions: Vec<Transaction>, nonce: i64, previous_hash: String) -> Self {
+    pub fn hash(&self) -> String {
+        let block_json = serde_json::to_string(&self).expect("Failed to Serialize Struct");
+        format!("{:x}", sha2::Sha256::digest(block_json.as_bytes()))
+    }
+    pub fn new(transactions: Vec<Rc<Transaction>>, nonce: i64, previous_hash: String) -> Self {
         let timestamp = Self::generate_timestamp();
 
         Self {
@@ -50,6 +75,10 @@ impl Block {
         }
     }
 
+    pub fn transactions(&self) -> Vec<Rc<Transaction>> {
+        self.transactions.clone()
+    }
+
     fn generate_timestamp() -> i64 {
         let start = SystemTime::now();
         let since_the_epoch = start
@@ -57,5 +86,30 @@ impl Block {
             .expect("Time went backwards");
 
         return since_the_epoch.as_secs() as i64;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::block::Block;
+
+    #[test]
+    fn test_block_hash() {
+        let block = Block::default();
+        let hash = block.hash_raw();
+        assert_eq!(hash.len(), 32);
+    }
+
+    #[test]
+    fn test_raw_hash_converted_is_same() {
+        let block = Block::default();
+        let hash_raw = block
+            .hash_raw()
+            .iter()
+            .map(|b| format!("{:x}", b))
+            .collect::<String>();
+
+        let hash = block.hash();
+        assert_eq!(hash, hash_raw);
     }
 }

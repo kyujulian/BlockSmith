@@ -3,8 +3,6 @@ use secp256k1::rand::rngs::OsRng;
 use secp256k1::Secp256k1;
 use secp256k1::{PublicKey, SecretKey};
 
-use std::env;
-
 #[derive(Debug)]
 pub struct Wallet {
     public_key: PublicKey,
@@ -19,6 +17,9 @@ impl Wallet {
             private_key,
             address: Self::generate_address(public_key),
         }
+    }
+    pub fn address(&self) -> String {
+        self.address.clone()
     }
     pub fn generate_new() -> Self {
         let secp = Secp256k1::new();
@@ -68,8 +69,7 @@ mod tests {
 
     use secp256k1::rand::rngs::OsRng;
     use secp256k1::Secp256k1;
-    use secp256k1::{PublicKey, SecretKey};
-    use serde::{Deserialize, Serialize};
+    use serde::Deserialize;
     use std::env;
 
     use crate::wallet;
