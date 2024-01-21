@@ -1,4 +1,4 @@
-use crate::chain::Blockchain;
+use crate::{chain::Blockchain, wallet::Wallet};
 
 pub mod block;
 pub mod chain;
@@ -8,6 +8,8 @@ pub mod wallet;
 pub const MINING_DIFFICULTY: usize = 3;
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
+    let mut my_wallet = Wallet::generate_new();
+    println!("my_wallet: {:?}", my_wallet);
     let mut my_chain = Blockchain::new(String::from("my_address"), MINING_DIFFICULTY);
 
     my_chain.add_transaction(String::from("Alice"), String::from("Bob"), 100);

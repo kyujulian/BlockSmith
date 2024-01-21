@@ -1,4 +1,5 @@
 Cargo.lock
 target
 */**/Cargo.lock
+*/**/.env
 
