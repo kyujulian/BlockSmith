@@ -62,8 +62,9 @@ impl Block {
 
     pub fn hash(&self) -> String {
         let block_json = serde_json::to_string(&self).expect("Failed to Serialize Struct");
-        let hash = sha2::Sha256::digest(block_json.as_bytes());
-        hex::encode(hash)
+        // let hash = sha2::Sha256::digest(block_json.as_bytes());
+        // hex::encode(hash)
+        format!("{:02x}", sha2::Sha256::digest(block_json.as_bytes()))
     }
     pub fn new(transactions: Vec<Rc<Transaction>>, nonce: i64, previous_hash: String) -> Self {
         let timestamp = Self::generate_timestamp();
