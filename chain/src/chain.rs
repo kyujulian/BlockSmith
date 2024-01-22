@@ -1,8 +1,10 @@
 use crate::block::Block;
-use crate::transaction::Transaction;
+use crate::transaction::{self, Transaction};
 
 use ripemd::digest::generic_array::GenericArray;
 use std::rc::Rc;
+
+const MINING_REWARD: i64 = 10;
 
 /// There should be only one blockchain instance per node
 pub struct Blockchain {
@@ -101,6 +103,10 @@ impl Blockchain {
     pub fn mine(&mut self) -> Option<&Block> {
         let nonce = self.proof_of_work();
         let previous_hash = self.last_block()?.hash();
+
+        let transaction =
+            Transaction::new(String::from("Network"), self.address.clone(), MINING_REWARD);
+        self.mempool.push(Rc::new(transaction));
 
         self.create_block(nonce, previous_hash)
     }
