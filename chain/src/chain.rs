@@ -1,5 +1,5 @@
 use crate::block::Block;
-use crate::transaction::{self, Transaction};
+use crate::transaction::Transaction;
 
 use ripemd::digest::generic_array::GenericArray;
 use std::rc::Rc;
