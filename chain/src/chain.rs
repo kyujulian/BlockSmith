@@ -13,11 +13,12 @@ pub struct Blockchain {
 }
 
 impl Blockchain {
-    pub fn new(address: String, difficulty: usize) -> Self {
+    pub fn new(address: String) -> Self {
         let mut chain = Vec::new();
         let genesis_block = Block::default();
         chain.push(genesis_block);
         let mempool = vec![];
+        let difficulty = 3;
 
         Self {
             address,

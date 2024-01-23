@@ -7,3 +7,9 @@ edition = "2021"
 
 [dependencies]
 actix-web = "4"
+actix-cors = "0.7"
+chain = { path="../chain" }
+reqwest = { version="0.11"}
+
+serde_json = "1.0"
+serde  = { version="1.0", features=["derive"] }
