@@ -1,6 +1,7 @@
 use actix_cors::Cors;
-use actix_web::{get, post, rt::net::TcpListener, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{dev::Server, get, post, web, App, HttpResponse, HttpServer, Responder};
 use chain::{self, chain::Blockchain, wallet}; // bad naming
+use std::net::TcpListener;
 
 use tracing::{self, debug, info};
 
@@ -28,7 +29,7 @@ async fn new_wallet() -> impl Responder {
     }
 }
 
-pub async fn run() -> std::io::Result<()> {
+pub fn run(listener: TcpListener) -> Result<Server, std::io::Error> {
     tracing_subscriber::fmt::Subscriber::builder()
         .with_max_level(tracing::Level::DEBUG)
         .init();
@@ -38,11 +39,10 @@ pub async fn run() -> std::io::Result<()> {
 
     let blockchain = Blockchain::new(address);
 
-    let listener = TcpListener::bind("127.0.0.1:8080");
-
-    HttpServer::new(|| {
+    let server = HttpServer::new(|| {
         let cors = Cors::default()
-            .allowed_origin("http://localhost:3000")
+            .allow_any_origin()
+            // .allowed_origin("http://localhost:3000")
             .allowed_methods(vec!["GET", "POST", "PATCH", "DELETE"])
             .allowed_headers(vec![
                 actix_web::http::header::AUTHORIZATION,
@@ -55,9 +55,10 @@ pub async fn run() -> std::io::Result<()> {
 
         App::new().wrap(cors).service(hello).service(new_wallet)
     })
-    .bind("127.0.0.1:8080")?
-    .run()
-    .await
+    .listen(listener)?
+    .run();
+
+    Ok(server)
 }
 #[cfg(test)]
 mod tests {}
