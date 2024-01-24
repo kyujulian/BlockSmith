@@ -1,6 +1,8 @@
 use actix_cors::Cors;
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{get, post, rt::net::TcpListener, web, App, HttpResponse, HttpServer, Responder};
 use chain::{self, chain::Blockchain, wallet}; // bad naming
+
+use tracing::{self, debug, info};
 
 #[get("/")]
 async fn hello() -> impl Responder {
@@ -11,23 +13,32 @@ async fn hello() -> impl Responder {
 async fn mine() -> impl Responder {
     HttpResponse::Ok().body("Mining a new block")
 }
-
+#[tracing::instrument]
 #[get("/wallet/new")]
 async fn new_wallet() -> impl Responder {
     let wallet = wallet::Wallet::generate_new();
     let res_body = serde_json::to_string(&wallet);
     match res_body {
-        Ok(body) => HttpResponse::Ok().body(body),
+        Ok(body) => {
+            info!("Wallet created");
+            debug!("{}", format!("New wallet: {}", body));
+            HttpResponse::Ok().body(body)
+        }
         Err(_) => HttpResponse::InternalServerError().body("Failed to serialize wallet"),
     }
 }
 
-#[actix_web::main]
 pub async fn run() -> std::io::Result<()> {
+    tracing_subscriber::fmt::Subscriber::builder()
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
+
     let root_wallet = wallet::Wallet::generate_new();
     let address = root_wallet.address();
 
     let blockchain = Blockchain::new(address);
+
+    let listener = TcpListener::bind("127.0.0.1:8080");
 
     HttpServer::new(|| {
         let cors = Cors::default()

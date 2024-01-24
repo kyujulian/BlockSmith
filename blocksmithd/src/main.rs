@@ -1,8 +1,9 @@
 use api;
 use chain;
 
-fn main() -> std::io::Result<()> {
+#[tokio::main]
+async fn main() -> std::io::Result<()> {
     chain::run().unwrap();
 
-    api::run()
+    api::run().await
 }
