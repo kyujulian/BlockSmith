@@ -2,5 +2,6 @@
 
 members = [
     "chain",
+    "api",
     "blocksmithd"
 ]

@@ -1,0 +1,19 @@
+[package]
+name = "api"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix-web = "4"
+actix-cors = "0.7"
+chain = { path="../chain" }
+reqwest = { version="0.11"}
+tracing = { version="0.1" }
+tracing-subscriber = { version = "0.3.18", features = ["registry", "env-filter"] }
+tokio = { version = "1.35" }
+
+
+serde_json = "1.0"
+serde  = { version="1.0", features=["derive"] }

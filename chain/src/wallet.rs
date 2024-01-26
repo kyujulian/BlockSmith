@@ -2,8 +2,9 @@ use ripemd::Digest;
 use secp256k1::rand::rngs::OsRng;
 use secp256k1::Secp256k1;
 use secp256k1::{PublicKey, SecretKey};
+use serde::Serialize;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Wallet {
     public_key: PublicKey,
     private_key: SecretKey,
