@@ -4,7 +4,7 @@ use ripemd::digest::generic_array::GenericArray;
 
 use std::sync::Arc;
 
-const MINING_REWARD: i64 = 10;
+const MINING_REWARD: f32 = 10.0;
 
 /// There should be only one blockchain instance per node
 #[derive(Debug)]
@@ -112,7 +112,7 @@ impl Blockchain {
 
         let transaction =
             Transaction::new(String::from("Network"), self.address.clone(), MINING_REWARD);
-        self.mempool.push(Rc::new(transaction));
+        self.mempool.push(Arc::new(transaction));
 
         self.create_block(nonce, previous_hash)
     }
