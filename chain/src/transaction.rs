@@ -1,14 +1,14 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Transaction {
     sender_address: String,
     recipient_address: String,
-    value: i64,
+    value: f32,
 }
 
 impl Transaction {
-    pub fn new(sender_address: String, recipient_address: String, value: i64) -> Self {
+    pub fn new(sender_address: String, recipient_address: String, value: f32) -> Self {
         Self {
             sender_address,
             recipient_address,
@@ -23,7 +23,7 @@ impl Transaction {
     pub fn recipient_address(&self) -> String {
         self.recipient_address.clone()
     }
-    pub fn value(&self) -> i64 {
+    pub fn value(&self) -> f32 {
         self.value
     }
 }

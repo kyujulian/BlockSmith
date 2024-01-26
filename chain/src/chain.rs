@@ -2,13 +2,14 @@ use crate::block::Block;
 use crate::transaction::Transaction;
 
 use ripemd::digest::generic_array::GenericArray;
-use std::rc::Rc;
+use std::sync::Arc;
 
 /// There should be only one blockchain instance per node
+#[derive(Debug)]
 pub struct Blockchain {
     address: String,
     chain: Vec<Block>,
-    mempool: Vec<Rc<Transaction>>,
+    mempool: Vec<Arc<Transaction>>,
     difficulty: usize,
 }
 
@@ -29,7 +30,7 @@ impl Blockchain {
     }
 
     /// For testing
-    pub fn mempool(&self) -> Vec<Rc<Transaction>> {
+    pub fn mempool(&self) -> Vec<Arc<Transaction>> {
         self.mempool.clone() // Shallow copy
     }
 
@@ -50,18 +51,18 @@ impl Blockchain {
     }
 
     pub fn add_transaction(
-        mut self,
+        &mut self,
         sender_address: &str,
         recipient_address: &str,
-        value: i64,
-    ) -> Self {
+        value: f32,
+    ) -> &mut Self {
         let transaction = Transaction::new(
             String::from(sender_address),
             String::from(recipient_address),
             value,
         );
 
-        self.mempool.push(Rc::new(transaction));
+        self.mempool.push(Arc::new(transaction));
         self
     }
 
@@ -83,8 +84,8 @@ impl Blockchain {
         nonce
     }
 
-    pub fn get_balance(&self, address: &str) -> i64 {
-        let mut balance = 0;
+    pub fn get_balance(&self, address: &str) -> f32 {
+        let mut balance = 0.0;
 
         for block in self.chain.iter() {
             for transaction in block.transactions().iter() {
@@ -109,7 +110,7 @@ impl Blockchain {
     fn valid_proof(
         nonce: i64,
         previous_hash: GenericArray<u8, typenum::U32>,
-        transactions: Vec<Rc<Transaction>>,
+        transactions: Vec<Arc<Transaction>>,
         difficulty: usize,
     ) -> bool {
         let zeros = "0".repeat(difficulty);
@@ -187,7 +188,7 @@ mod tests {
     fn mempool_empty_after_block_created() {
         let mut blockchain = Blockchain::new(String::from("my_address"));
 
-        blockchain = blockchain.add_transaction("sender_address", "recipient_address", 100); // there must be a way to avoid this..
+        blockchain.add_transaction("sender_address", "recipient_address", 100.0); // there must be a way to avoid this..
 
         assert_eq!(blockchain.mempool().len(), 1);
 

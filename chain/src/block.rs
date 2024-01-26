@@ -4,7 +4,7 @@ use ripemd::digest::generic_array::GenericArray;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
 use sha2::Digest;
-use std::rc::Rc;
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone)]
@@ -12,7 +12,7 @@ pub struct Block {
     timestamp: i64,
     nonce: i64,
     previous_hash: String,
-    transactions: Vec<Rc<Transaction>>,
+    transactions: Vec<Arc<Transaction>>,
 }
 
 impl Serialize for Block {
@@ -25,8 +25,8 @@ impl Serialize for Block {
         state.serialize_field("nonce", &self.nonce)?;
         state.serialize_field("previous_hash", &self.previous_hash)?;
 
-        // Serialize each transaction by dereferencing the Rc.
-        // This will serialize the data pointed to by the Rc, not the Rc itself.
+        // Serialize each transaction by dereferencing the Arc.
+        // This will serialize the data pointed to by the Arc, not the Arc itself.
         let transaction_data: Vec<&Transaction> =
             self.transactions.iter().map(|rc| &**rc).collect();
         state.serialize_field("transactions", &transaction_data)?;
@@ -66,7 +66,7 @@ impl Block {
         // hex::encode(hash)
         format!("{:02x}", sha2::Sha256::digest(block_json.as_bytes()))
     }
-    pub fn new(transactions: Vec<Rc<Transaction>>, nonce: i64, previous_hash: String) -> Self {
+    pub fn new(transactions: Vec<Arc<Transaction>>, nonce: i64, previous_hash: String) -> Self {
         let timestamp = Self::generate_timestamp();
 
         Self {
@@ -77,7 +77,7 @@ impl Block {
         }
     }
 
-    pub fn transactions(&self) -> Vec<Rc<Transaction>> {
+    pub fn transactions(&self) -> Vec<Arc<Transaction>> {
         self.transactions.clone()
     }
 
