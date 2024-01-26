@@ -147,7 +147,10 @@ impl Blockchain {
 
         Ok(())
     }
-    fn verify_and_add_block(&mut self, block: Block) -> Result<&Block, Box<dyn std::error::Error>> {
+    pub fn verify_and_add_block(
+        &mut self,
+        block: Block,
+    ) -> Result<&Block, Box<dyn std::error::Error>> {
         self.verify_block(&block)?;
         let error = Box::new(std::io::Error::new(std::io::ErrorKind::Other, "Error"));
         self.chain.push(block);

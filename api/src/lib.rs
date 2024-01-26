@@ -35,13 +35,38 @@ async fn new_block(req_body: String, data: web::Data<Arc<Mutex<Blockchain>>>) ->
 
     match data.lock() {
         Ok(mut chain) => {
-            let block = chain::block::Block::new();
-            HttpResponse::Ok().body("New block added")
+            let new_block = new_block.unwrap(); // safe, as we would've returned above
+            let transactions: Vec<Arc<Transaction>> = new_block
+                .transactions
+                .iter()
+                .map(|tx| {
+                    Arc::new(Transaction::new(
+                        tx.sender_address.clone(),
+                        tx.recipient_address.clone(),
+                        tx.value,
+                    ))
+                })
+                .collect();
+
+            let block = chain::block::Block::new(
+                new_block.timestamp,
+                transactions,
+                new_block.nonce,
+                new_block.previous_hash,
+            );
+            match chain.verify_and_add_block(block) {
+                Ok(_) => {
+                    info!("New block added");
+                    return HttpResponse::Ok().body("New block added");
+                }
+                Err(err) => {
+                    debug!("Failed to add block: {:?}", err);
+                    return HttpResponse::ExpectationFailed().body("Failed to lock data");
+                }
+            }
         }
-        Err(_) => HttpResponse::ExpectationFailed().body("Failed to lock data"),
+        Err(_) => return HttpResponse::ExpectationFailed().body("Failed to lock data"),
     }
-    let mut chain = data.lock().expect("Failed to mutex lock chain");
-    HttpResponse::Ok().body("New block added")
 }
 #[get("/")]
 async fn hello() -> impl Responder {
