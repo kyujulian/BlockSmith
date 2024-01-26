@@ -29,6 +29,7 @@ impl Serialize for Block {
         // This will serialize the data pointed to by the Arc, not the Arc itself.
         let transaction_data: Vec<&Transaction> =
             self.transactions.iter().map(|rc| &**rc).collect();
+
         state.serialize_field("transactions", &transaction_data)?;
 
         state.end()
@@ -38,8 +39,8 @@ impl Serialize for Block {
 impl Block {
     pub fn default() -> Self {
         let timestamp = Self::generate_timestamp();
-        let nonce = 0; // todo: this should be calculated
-        let previous_hash = String::from(""); // todo: this should be calculated
+        let nonce = 0;
+        let previous_hash = String::from("");
 
         Self {
             timestamp,

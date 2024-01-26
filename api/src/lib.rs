@@ -5,7 +5,7 @@ use std::net::TcpListener;
 use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
-use tracing::{self, debug, info};
+use tracing::{self, debug, info, trace};
 
 use chain::transaction::Transaction;
 
@@ -25,6 +25,32 @@ struct NewBlockRequest {
     transactions: Vec<TransactionRequest>,
 }
 
+#[tracing::instrument]
+#[get("/transactions/pending")]
+async fn get_transactions_mempool(data: web::Data<Arc<Mutex<Blockchain>>>) -> impl Responder {
+    let chain = data.lock().unwrap();
+    let mempool = chain.mempool();
+
+    let mempool_deref = mempool
+        .iter()
+        .map(|tx| &**tx)
+        .collect::<Vec<&Transaction>>();
+
+    let res_body = serde_json::to_string(&mempool_deref);
+
+    match res_body {
+        Ok(res) => {
+            trace!("Transactions in the mempool fetched {}", res);
+            HttpResponse::Ok().body(res)
+        }
+        Err(_) => {
+            debug!("Failed to serialize transactions {:?}", mempool_deref);
+            HttpResponse::ExpectationFailed().body("Failed to serialize transactions")
+        }
+    }
+}
+
+#[tracing::instrument]
 #[post("/block/new")]
 async fn new_block(req_body: String, data: web::Data<Arc<Mutex<Blockchain>>>) -> impl Responder {
     let new_block = serde_json::from_str::<NewBlockRequest>(&req_body);
