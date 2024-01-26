@@ -1,7 +1,7 @@
 use crate::block::Block;
 use crate::transaction::Transaction;
-
 use ripemd::digest::generic_array::GenericArray;
+
 use std::sync::Arc;
 
 /// There should be only one blockchain instance per node
@@ -46,7 +46,6 @@ impl Blockchain {
     pub fn add_block(&mut self) -> Option<&Block> {
         let previous_hash = self.last_block()?.hash();
         let nonce = 0;
-
         self.create_block(nonce, previous_hash)
     }
 
@@ -121,7 +120,7 @@ impl Blockchain {
         let zeros = "0".repeat(difficulty);
 
         let previous_hash_str = format!("{:x}", previous_hash);
-        let guess_block = Block::new(transactions, nonce, previous_hash_str);
+        let guess_block = Block::create_from(transactions, nonce, previous_hash_str);
 
         // let hash = guess_block.hash();
         let hash = guess_block.hash();
@@ -130,9 +129,33 @@ impl Blockchain {
         }
         false
     }
+    fn verify_block(&self, block: &Block) -> Result<(), Box<dyn std::error::Error>> {
+        let previous_block = self.chain.last().ok_or("Failed to get last block")?.clone();
+
+        if previous_block.hash() != block.previous_hash() {
+            return Err("Previous hash does not match".into());
+        }
+
+        if !Self::valid_proof(
+            block.nonce(),
+            previous_block.hash_raw(),
+            block.transactions(),
+            self.difficulty,
+        ) {
+            return Err("Invalid proof".into());
+        }
+
+        Ok(())
+    }
+    fn verify_and_add_block(&mut self, block: Block) -> Result<&Block, Box<dyn std::error::Error>> {
+        self.verify_block(&block)?;
+        let error = Box::new(std::io::Error::new(std::io::ErrorKind::Other, "Error"));
+        self.chain.push(block);
+        self.chain.last().ok_or(error)
+    }
 
     fn create_block(&mut self, nonce: i64, previous_hash: String) -> Option<&Block> {
-        let block = Block::new(self.mempool(), nonce, previous_hash);
+        let block = Block::create_from(self.mempool(), nonce, previous_hash);
 
         self.chain.push(block);
         self.mempool.clear();

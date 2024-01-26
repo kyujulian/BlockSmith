@@ -7,6 +7,8 @@ use std::sync::{Arc, Mutex};
 use serde::{Deserialize, Serialize};
 use tracing::{self, debug, info};
 
+use chain::transaction::Transaction;
+
 #[derive(Deserialize, Serialize)]
 struct TransactionRequest {
     sender_address: String,
@@ -14,6 +16,33 @@ struct TransactionRequest {
     value: f32,
 }
 
+#[derive(Deserialize, Serialize)]
+struct NewBlockRequest {
+    timestamp: i64,
+    nonce: i64,
+    previous_hash: String,
+    // Don't know if this is enough but I can create a transaction from this so it should be
+    transactions: Vec<TransactionRequest>,
+}
+
+#[post("/block/new")]
+async fn new_block(req_body: String, data: web::Data<Arc<Mutex<Blockchain>>>) -> impl Responder {
+    let new_block = serde_json::from_str::<NewBlockRequest>(&req_body);
+
+    if new_block.is_err() {
+        return HttpResponse::BadRequest().body("Failed to deserialize block");
+    }
+
+    match data.lock() {
+        Ok(mut chain) => {
+            let block = chain::block::Block::new();
+            HttpResponse::Ok().body("New block added")
+        }
+        Err(_) => HttpResponse::ExpectationFailed().body("Failed to lock data"),
+    }
+    let mut chain = data.lock().expect("Failed to mutex lock chain");
+    HttpResponse::Ok().body("New block added")
+}
 #[get("/")]
 async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Hello world!")
@@ -24,7 +53,7 @@ async fn mine(data: web::Data<Arc<Mutex<Blockchain>>>) -> impl Responder {
     match data.lock() {
         Ok(mut chain) => {
             chain.mine();
-
+            info!("Mining a new block");
             HttpResponse::Ok().body("Mining a new block")
         }
         Err(_) => HttpResponse::ExpectationFailed().body("Failed to lock data"),

@@ -49,6 +49,10 @@ impl Block {
         }
     }
 
+    pub fn nonce(&self) -> i64 {
+        self.nonce
+    }
+
     /// testing purposes
     pub fn previous_hash(&self) -> String {
         self.previous_hash.clone()
@@ -66,9 +70,33 @@ impl Block {
         // hex::encode(hash)
         format!("{:02x}", sha2::Sha256::digest(block_json.as_bytes()))
     }
-    pub fn new(transactions: Vec<Arc<Transaction>>, nonce: i64, previous_hash: String) -> Self {
-        let timestamp = Self::generate_timestamp();
 
+    pub fn check_timestamp(timestamp: i64) {
+        let now = Self::generate_timestamp();
+        if timestamp > now {
+            panic!("Timestamp cannot be in the future");
+        }
+    }
+    pub fn create_from(
+        transactions: Vec<Arc<Transaction>>,
+        nonce: i64,
+        previous_hash: String,
+    ) -> Self {
+        let timestamp = Self::generate_timestamp();
+        Self {
+            timestamp,
+            nonce,
+            previous_hash,
+            transactions,
+        }
+    }
+    pub fn new(
+        timestamp: i64,
+        transactions: Vec<Arc<Transaction>>,
+        nonce: i64,
+        previous_hash: String,
+    ) -> Self {
+        Self::check_timestamp(timestamp);
         Self {
             timestamp,
             nonce,
