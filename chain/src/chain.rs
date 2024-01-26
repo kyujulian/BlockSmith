@@ -100,7 +100,12 @@ impl Blockchain {
         balance
     }
 
+    pub fn address(&self) -> String {
+        self.address.clone()
+    }
     pub fn mine(&mut self) -> Option<&Block> {
+        let self_address = self.address();
+        self.add_transaction("the_network", &self_address, 1.0);
         let nonce = self.proof_of_work();
         let previous_hash = self.last_block()?.hash();
 
