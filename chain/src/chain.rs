@@ -132,6 +132,12 @@ impl Blockchain {
     fn verify_block(&self, block: &Block) -> Result<(), Box<dyn std::error::Error>> {
         let previous_block = self.chain.last().ok_or("Failed to get last block")?.clone();
 
+        let now = crate::block::Block::generate_timestamp();
+
+        if block.timestamp() <= previous_block.timestamp() || block.timestamp() < now {
+            return Err("Invalid timestamp".into());
+        }
+
         if previous_block.hash() != block.previous_hash() {
             return Err("Previous hash does not match".into());
         }

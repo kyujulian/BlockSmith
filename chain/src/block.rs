@@ -49,6 +49,10 @@ impl Block {
         }
     }
 
+    pub fn timestamp(&self) -> i64 {
+        self.timestamp
+    }
+
     pub fn nonce(&self) -> i64 {
         self.nonce
     }
@@ -71,11 +75,10 @@ impl Block {
         format!("{:02x}", sha2::Sha256::digest(block_json.as_bytes()))
     }
 
-    pub fn check_timestamp(timestamp: i64) {
+    pub fn check_timestamp(timestamp: i64) -> bool {
         let now = Self::generate_timestamp();
-        if timestamp > now {
-            panic!("Timestamp cannot be in the future");
-        }
+
+        return timestamp <= now;
     }
     pub fn create_from(
         transactions: Vec<Arc<Transaction>>,
@@ -96,7 +99,6 @@ impl Block {
         nonce: i64,
         previous_hash: String,
     ) -> Self {
-        Self::check_timestamp(timestamp);
         Self {
             timestamp,
             nonce,
@@ -109,7 +111,7 @@ impl Block {
         self.transactions.clone()
     }
 
-    fn generate_timestamp() -> i64 {
+    pub fn generate_timestamp() -> i64 {
         let start = SystemTime::now();
         let since_the_epoch = start
             .duration_since(UNIX_EPOCH)
