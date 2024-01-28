@@ -101,13 +101,18 @@ async fn hello() -> impl Responder {
 
 #[get("/mine")]
 async fn mine(data: web::Data<Arc<Mutex<Blockchain>>>) -> impl Responder {
-    match data.lock() {
-        Ok(mut chain) => {
-            chain.mine();
-            info!("Mining a new block");
-            HttpResponse::Ok().body("Mining a new block")
+    let chain = match data.lock() {
+        Ok(chain) => chain,
+        Err(_) => return HttpResponse::ExpectationFailed().body("Failed to lock data"),
+    };
+
+    match chain.mine() {
+        Ok(block) => {
+            info!("Block mined");
+            debug!("{}", format!("Block: {:?}", block));
+            return HttpResponse::Ok().body(format!("Block mined: {}", block));
         }
-        Err(_) => HttpResponse::ExpectationFailed().body("Failed to lock data"),
+        Err(_) => HttpResponse::ExpectationFailed().body("Failed to mine block"),
     }
 }
 

@@ -1,5 +1,4 @@
 use crate::transaction::Transaction;
-use anyhow::Context;
 use ripemd::digest::generic_array::GenericArray;
 
 use serde::ser::SerializeStruct;
@@ -158,9 +157,7 @@ pub enum BlockError {
 impl std::fmt::Display for BlockError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            BlockError::SerializeError(e) => {
-                write!(f, "Failed to Serialize Block: {}", e.to_string())
-            }
+            BlockError::SerializeError(e) => write!(f, "{}", e.to_string()),
         }
     }
 }
