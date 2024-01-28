@@ -8,8 +8,8 @@ pub mod wallet;
 pub const MINING_DIFFICULTY: usize = 4;
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
-    // let wallet_a = Wallet::generate_new();
-    // let a_address = wallet_a.address();
+    let wallet_a = Wallet::generate_new();
+    let a_address = wallet_a.address();
 
     // let wallet_b = Wallet::generate_new();
     // let b_address = wallet_b.address();
@@ -17,7 +17,15 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     // let wallet_c = Wallet::generate_new();
     // let c_address = wallet_c.address();
 
-    // let mut my_chain = Blockchain::new(String::from("my_address"), MINING_DIFFICULTY);
+    let mut my_chain = Blockchain::new(String::from("my_address"));
+
+    println!("chain {:?}", my_chain);
+
+    println!("Now mining");
+
+    my_chain.mine().unwrap();
+
+    println!("last block {:#?}", my_chain.last_block());
 
     // my_chain = my_chain.add_transaction(&a_address, &b_address, 100);
 

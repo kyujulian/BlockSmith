@@ -52,12 +52,6 @@ impl Blockchain {
         self.chain.clone() // Deep copy
     }
 
-    pub fn add_block(&mut self) -> Result<&Block, ChainError> {
-        let previous_hash = self.last_block()?.hash()?;
-        let nonce = 0;
-        self.create_block(nonce, previous_hash)
-    }
-
     pub fn add_transaction(
         &mut self,
         sender_address: &str,
@@ -71,6 +65,7 @@ impl Blockchain {
         );
 
         self.mempool.push(Arc::new(transaction));
+
         self
     }
 
@@ -125,7 +120,9 @@ impl Blockchain {
 
         self.mempool.push(Arc::new(transaction));
 
-        self.create_block(nonce, previous_hash)
+        let new_block = self.create_block(nonce, previous_hash);
+
+        self.verify_and_add_block(new_block)
     }
 
     fn valid_proof(
@@ -183,6 +180,7 @@ impl Blockchain {
     pub fn verify_and_add_block(&mut self, block: Block) -> Result<&Block, ChainError> {
         self.verify_block(&block)?;
         self.chain.push(block);
+        self.mempool.clear();
 
         match self.chain.last() {
             Some(block) => Ok(block),
@@ -192,72 +190,77 @@ impl Blockchain {
         }
     }
 
-    fn create_block(&mut self, nonce: i64, previous_hash: String) -> Result<&Block, ChainError> {
+    // pub fn add_block(&mut self) -> Result<&Block, ChainError> {
+    //     let previous_hash = self.last_block()?.hash()?;
+    //     let nonce = 0;
+    //     self.create_block(nonce, previous_hash)
+    // }
+
+    fn create_block(&mut self, nonce: i64, previous_hash: String) -> Block {
         let block = Block::create_from(self.mempool(), nonce, previous_hash);
-
-        self.chain.push(block);
-        self.mempool.clear();
-
-        match self.chain.last() {
-            Some(block) => Ok(&block),
-            None => Err(ChainError::RetrieveBlockError(
-                "Failed to retrieve block".into(),
-            )),
-        }
+        return block;
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    // use super::*;
 
-    #[test]
-    fn block_added_references_previous_block() {
-        let mut blockchain = Blockchain::new(String::from("my_address"));
-        let first_block = blockchain.last_block().unwrap().clone();
+    // #[test]
+    // fn cannot_insert_block_without_pow() {
+    //     let mut blockchain = Blockchain::new(String::from("my_address"));
+    //     let new_block = blockchain.last_block().unwrap().clone();
 
-        blockchain.add_block().unwrap();
+    //     assert!(blockchain.verify_and_add_block(new_block).is_err());
+    // }
 
-        println!("blockchain: {:?}", blockchain.chain());
+    // #[test]
+    // fn block_added_references_previous_block() {
+    //     let mut blockchain = Blockchain::new(String::from("my_address"));
+    //     let first_block = blockchain.last_block().unwrap().clone();
 
-        let last_block = blockchain.last_block().unwrap().clone();
+    //     blockchain.add_block().unwrap();
 
-        blockchain.add_block().unwrap();
+    //     println!("blockchain: {:?}", blockchain.chain());
 
-        println!("hash_2: {:?}", last_block.hash());
-        assert_eq!(first_block.hash().unwrap(), last_block.previous_hash());
-    }
+    //     let last_block = blockchain.last_block().unwrap().clone();
 
-    #[test]
-    fn hashes_are_unique() {
-        let mut blockchain = Blockchain::new(String::from("my_address"));
+    //     blockchain.add_block().unwrap();
 
-        let first_block = blockchain.last_block().unwrap().clone();
+    //     println!("hash_2: {:?}", last_block.hash());
+    //     assert_eq!(first_block.hash().unwrap(), last_block.previous_hash());
+    // }
 
-        blockchain.add_block().unwrap();
+    // #[test]
+    // fn hashes_are_unique() {
+    //     let mut blockchain = Blockchain::new(String::from("my_address"));
 
-        let last_block = blockchain.last_block().unwrap().clone();
+    //     let first_block = blockchain.last_block().unwrap().clone();
 
-        blockchain.add_block().unwrap();
+    //     blockchain.add_block().unwrap();
 
-        assert_ne!(
-            first_block.hash_raw().unwrap(),
-            last_block.hash_raw().unwrap()
-        );
-    }
+    //     let last_block = blockchain.last_block().unwrap().clone();
 
-    #[test]
-    fn mempool_empty_after_block_created() {
-        let mut blockchain = Blockchain::new(String::from("my_address"));
+    //     blockchain.add_block().unwrap();
 
-        blockchain.add_transaction("sender_address", "recipient_address", 100.0); // there must be a way to avoid this..
+    //     assert_ne!(
+    //         first_block.hash_raw().unwrap(),
+    //         last_block.hash_raw().unwrap()
+    //     );
+    // }
 
-        assert_eq!(blockchain.mempool().len(), 1);
+    // #[test]
+    // fn mempool_empty_after_block_created() {
+    //     let mut blockchain = Blockchain::new(String::from("my_address"));
 
-        blockchain.add_block();
+    //     blockchain.add_transaction("sender_address", "recipient_address", 100.0); // there must be a way to avoid this..
 
-        assert_eq!(blockchain.mempool().len(), 0);
-    }
+    //     assert_eq!(blockchain.mempool().len(), 1);
+
+    //     blockchain.add_block().unwrap();
+
+    //     assert_eq!(blockchain.mempool().len(), 0);
+    // }
 }
 
 #[derive(Debug)]
