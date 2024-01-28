@@ -1,4 +1,5 @@
 use crate::transaction::Transaction;
+use anyhow::Context;
 use ripemd::digest::generic_array::GenericArray;
 
 use serde::ser::SerializeStruct;
@@ -63,17 +64,19 @@ impl Block {
         self.previous_hash.clone()
     }
 
-    pub fn hash_raw(&self) -> GenericArray<u8, typenum::U32> {
-        let block_json = serde_json::to_string(&self).expect("Failed to Serialize Struct");
-
-        sha2::Sha256::digest(block_json.as_bytes())
+    pub fn hash_raw(&self) -> Result<GenericArray<u8, typenum::U32>, BlockError> {
+        let block_json = serde_json::to_string(&self)?;
+        Ok(sha2::Sha256::digest(block_json.as_bytes()))
     }
 
-    pub fn hash(&self) -> String {
-        let block_json = serde_json::to_string(&self).expect("Failed to Serialize Struct");
+    pub fn hash(&self) -> Result<String, BlockError> {
+        let block_json = serde_json::to_string(&self)?;
         // let hash = sha2::Sha256::digest(block_json.as_bytes());
         // hex::encode(hash)
-        format!("{:02x}", sha2::Sha256::digest(block_json.as_bytes()))
+        Ok(format!(
+            "{:02x}",
+            sha2::Sha256::digest(block_json.as_bytes())
+        ))
     }
 
     pub fn check_timestamp(timestamp: i64) -> bool {
@@ -129,7 +132,7 @@ mod tests {
     #[test]
     fn test_block_hash() {
         let block = Block::default();
-        let hash = block.hash_raw();
+        let hash = block.hash_raw().unwrap();
         assert_eq!(hash.len(), 32);
     }
 
@@ -142,7 +145,28 @@ mod tests {
             .map(|b| format!("{:02x}", b))
             .collect::<String>();
 
-        let hash = block.hash();
+        let hash = block.hash().unwrap();
         assert_eq!(hash, hash_raw);
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum BlockError {
+    SerializeError(serde_json::Error),
+}
+
+impl std::fmt::Display for BlockError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            BlockError::SerializeError(e) => {
+                write!(f, "Failed to Serialize Block: {}", e.to_string())
+            }
+        }
+    }
+}
+
+impl From<serde_json::Error> for BlockError {
+    fn from(e: serde_json::Error) -> Self {
+        BlockError::SerializeError(e)
     }
 }
