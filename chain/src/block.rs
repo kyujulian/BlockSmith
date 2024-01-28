@@ -124,6 +124,13 @@ impl Block {
     }
 }
 
+impl std::fmt::Display for Block {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let block_json = serde_json::to_string(&self).unwrap();
+        write!(f, "{}", block_json)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::block::Block;
