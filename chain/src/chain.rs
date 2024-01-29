@@ -18,7 +18,7 @@ pub struct Blockchain {
 impl Blockchain {
     pub fn new(address: String, difficulty: usize) -> Self {
         let mut chain = Vec::new();
-        let genesis_block = Block::default();
+        let genesis_block = Block::genesis();
         chain.push(genesis_block);
         let mempool = vec![];
         let difficulty = difficulty;
@@ -69,7 +69,7 @@ impl Blockchain {
         self
     }
 
-    pub fn proof_of_work(&self) -> Result<i64, ChainError> {
+    pub fn proof_of_work(&self) -> Result<Block, ChainError> {
         let previous_hash = match self.last_block()?.hash_raw() {
             Ok(hash) => hash,
             Err(e) => return Err(e.into()),
@@ -77,17 +77,13 @@ impl Blockchain {
 
         let mut nonce = 0;
 
-        while Self::valid_proof(
-            nonce,
-            previous_hash.clone(),
-            self.mempool(),
-            self.difficulty,
-        )
-        .is_err()
-        {
-            nonce += 1;
+        let previous_hash_str = format!("{:x}", previous_hash);
+
+        let mut guess_block = Block::create_from(self.mempool(), nonce, previous_hash_str);
+        while Self::valid_proof(&guess_block, self.difficulty).is_err() {
+            guess_block.increment_nonce();
         }
-        Ok(nonce)
+        Ok(guess_block)
     }
 
     pub fn get_balance(&self, address: &str) -> f32 {
@@ -112,29 +108,20 @@ impl Blockchain {
     pub fn mine(&mut self) -> Result<&Block, ChainError> {
         let self_address = self.address();
         self.add_transaction("the_network", &self_address, 1.0);
-        let nonce = self.proof_of_work()?;
 
-        let previous_hash = self.last_block()?.hash()?;
-        let transaction =
-            Transaction::new(String::from("Network"), self.address.clone(), MINING_REWARD);
-
-        self.mempool.push(Arc::new(transaction));
-
-        let new_block = self.create_block(nonce, previous_hash);
+        let new_block = self.proof_of_work()?;
 
         self.verify_and_add_block(new_block)
     }
 
     fn valid_proof(
-        nonce: i64,
-        previous_hash: GenericArray<u8, typenum::U32>,
-        transactions: Vec<Arc<Transaction>>,
+        // nonce: i64,
+        // previous_hash: GenericArray<u8, typenum::U32>,
+        // transactions: Vec<Arc<Transaction>>,
+        guess_block: &Block,
         difficulty: usize,
     ) -> Result<(), ChainError> {
         let zeros = "0".repeat(difficulty);
-
-        let previous_hash_str = format!("{:x}", previous_hash);
-        let guess_block = Block::create_from(transactions, nonce, previous_hash_str);
 
         // let hash = guess_block.hash();
         let hash = guess_block.hash()?;
@@ -154,13 +141,13 @@ impl Blockchain {
 
         let now = crate::block::Block::generate_timestamp();
 
-        if block.timestamp() <= previous_block.timestamp() || block.timestamp() < now {
+        if block.timestamp() < previous_block.timestamp() || block.timestamp() > now {
             return Err(ChainError::ValidationError("Invalid timestamp".into()));
         }
 
         let previous_block_hash = previous_block.hash()?;
 
-        let previous_hash = block.hash()?;
+        let previous_hash = block.previous_hash();
 
         if previous_block_hash != previous_hash {
             return Err(ChainError::ValidationError(
@@ -168,18 +155,12 @@ impl Blockchain {
             ));
         }
 
-        let previous_block_hash_raw = previous_block.hash_raw()?;
-
-        Self::valid_proof(
-            block.nonce(),
-            previous_block_hash_raw,
-            block.transactions(),
-            self.difficulty,
-        )
+        Self::valid_proof(block, self.difficulty)
     }
     pub fn verify_and_add_block(&mut self, block: Block) -> Result<&Block, ChainError> {
         self.verify_block(&block)?;
         self.chain.push(block);
+
         self.mempool.clear();
 
         match self.chain.last() {
@@ -205,6 +186,7 @@ impl Blockchain {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
 
     #[test]
     fn cannot_insert_block_without_pow() {
@@ -218,29 +200,31 @@ mod tests {
     fn block_added_references_previous_block() {
         let mut blockchain = Blockchain::new(String::from("my_address"), 3);
 
-        blockchain.mine();
-        let first_block = blockchain.last_block().unwrap().clone();
-
-        blockchain.mine();
-        let last_block = blockchain.last_block().unwrap().clone();
-
-        assert_eq!(first_block.hash().unwrap(), last_block.previous_hash());
+        for _ in 0..10 {
+            blockchain.mine().unwrap();
+            assert_eq!(
+                blockchain.last_block().unwrap().hash().unwrap(),
+                blockchain.chain()[blockchain.chain().len() - 1]
+                    .hash()
+                    .unwrap()
+            );
+        }
     }
 
     #[test]
     fn hashes_are_unique() {
         let mut blockchain = Blockchain::new(String::from("my_address"), 3);
 
-        blockchain.mine();
-        let first_block = blockchain.last_block().unwrap().clone();
+        for _ in 0..10 {
+            blockchain.mine().unwrap();
+        }
 
-        blockchain.mine();
-        let last_block = blockchain.last_block().unwrap().clone();
-
-        assert_ne!(
-            first_block.hash_raw().unwrap(),
-            last_block.hash_raw().unwrap()
-        );
+        let set: HashSet<_> = blockchain
+            .chain()
+            .iter()
+            .map(|block| block.hash().unwrap())
+            .collect();
+        assert_eq!(blockchain.chain().len(), set.len());
     }
 
     #[test]
@@ -251,7 +235,7 @@ mod tests {
 
         assert_eq!(blockchain.mempool().len(), 1);
 
-        blockchain.add_block().unwrap();
+        blockchain.mine().expect("Failed to mine");
 
         assert_eq!(blockchain.mempool().len(), 0);
     }

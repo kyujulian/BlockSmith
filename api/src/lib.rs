@@ -177,7 +177,7 @@ pub fn run(listener: TcpListener) -> Result<Server, std::io::Error> {
     let root_wallet = wallet::Wallet::generate_new();
     let address = root_wallet.address();
 
-    let shared_blockchain = Arc::new(Mutex::new(Blockchain::new(address)));
+    let shared_blockchain = Arc::new(Mutex::new(Blockchain::new(address, 4)));
 
     let server = HttpServer::new(move || {
         let cors = Cors::default()

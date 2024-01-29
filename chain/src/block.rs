@@ -37,8 +37,8 @@ impl Serialize for Block {
 }
 
 impl Block {
-    pub fn default() -> Self {
-        let timestamp = Self::generate_timestamp();
+    pub fn genesis() -> Self {
+        let timestamp = 1706493690000;
         let nonce = 0;
         let previous_hash = String::from("");
 
@@ -56,6 +56,10 @@ impl Block {
 
     pub fn nonce(&self) -> i64 {
         self.nonce
+    }
+
+    pub fn increment_nonce(&mut self) {
+        self.nonce += 1;
     }
 
     /// testing purposes
@@ -120,7 +124,7 @@ impl Block {
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards");
 
-        return since_the_epoch.as_secs() as i64;
+        return since_the_epoch.as_millis() as i64;
     }
 }
 
@@ -137,14 +141,14 @@ mod tests {
 
     #[test]
     fn test_block_hash() {
-        let block = Block::default();
+        let block = Block::genesis();
         let hash = block.hash_raw().unwrap();
         assert_eq!(hash.len(), 32);
     }
 
     #[test]
     fn test_raw_hash_converted_is_same() {
-        let block = Block::default();
+        let block = Block::genesis();
         let hash_raw: String = block
             .hash_raw()
             .iter()

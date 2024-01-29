@@ -17,7 +17,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     // let wallet_c = Wallet::generate_new();
     // let c_address = wallet_c.address();
 
-    let mut my_chain = Blockchain::new(String::from("my_address"));
+    let mut my_chain = Blockchain::new(String::from("my_address"), MINING_DIFFICULTY);
 
     println!("chain {:?}", my_chain);
 
